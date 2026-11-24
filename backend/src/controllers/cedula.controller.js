@@ -17,9 +17,8 @@ async function getDetalleCedula(req, res) {
 
     const partido = partidos[0];
 
-    // Obtener jugadores habilitados de ambos equipos para el selector de eventos
     const [jugadores] = await pool.query(
-      `SELECT pt.id_equipo, pt.num_camiseta, j.id_jugador, j.nombre_completo, j.ine_validada
+      `SELECT pt.id_equipo, pt.num_camiseta, j.id_jugador, j.nombre_completo
        FROM plantillas_torneo pt
        JOIN jugadores j ON j.id_jugador = pt.id_jugador
        WHERE pt.id_torneo = ? AND pt.id_equipo IN (?, ?) AND pt.estatus_habilitado = 1
@@ -58,17 +57,21 @@ async function getDetalleCedula(req, res) {
   }
 }
 
-/**
- * Guarda y cierra la Cédula Arbitral Digital dentro de una transacción ACID.
- * Dispara el trigger trg_after_cedula_cerrada y recalcula tabla general y goleo en tiempo real.
- */
 async function guardarYCerrarCedula(req, res) {
   try {
     const { idPartido } = req.params;
-    const { goles_local, goles_visita, observaciones = '', eventos = [], cerrar = true } = req.body;
+    const {
+      goles_local = 0,
+      goles_visita = 0,
+      observaciones = '',
+      eventos = [],
+      cerrar = true,
+    } = req.body;
 
     const resultado = await withTransaction(async (conn) => {
-      const [pRows] = await conn.query('SELECT * FROM partidos WHERE id_partido = ? LIMIT 1', [idPartido]);
+      const [pRows] = await conn.query('SELECT * FROM partidos WHERE id_partido = ? LIMIT 1', [
+        idPartido,
+      ]);
       if (pRows.length === 0) throw new Error('Partido no encontrado.');
       const partido = pRows[0];
 
@@ -111,20 +114,29 @@ async function guardarYCerrarCedula(req, res) {
           ]
         );
         idCedula = ins.insertId;
-        if (cerrar) {
-          await conn.query("UPDATE partidos SET estatus = 'FINALIZADO' WHERE id_partido = ?", [idPartido]);
-        }
+      }
+
+      if (cerrar) {
+        await conn.query("UPDATE partidos SET estatus = 'FINALIZADO' WHERE id_partido = ?", [
+          idPartido,
+        ]);
       }
 
       for (const ev of eventos) {
         await conn.query(
           `INSERT INTO eventos_partido (id_cedula, id_equipo, id_jugador, tipo, minuto, observacion)
            VALUES (?, ?, ?, ?, ?, ?)`,
-          [idCedula, ev.id_equipo, ev.id_jugador, ev.tipo, Number(ev.minuto), ev.observacion || null]
+          [
+            idCedula,
+            Number(ev.id_equipo),
+            Number(ev.id_jugador),
+            ev.tipo,
+            Number(ev.minuto) || 1,
+            ev.observacion || null,
+          ]
         );
       }
 
-      // Consultar tabla general recalculada en tiempo real
       const [tabla] = await conn.query(
         `SELECT * FROM vw_tabla_posiciones
          WHERE id_torneo = ?
@@ -143,6 +155,7 @@ async function guardarYCerrarCedula(req, res) {
       data: resultado,
     });
   } catch (error) {
+    console.error('Error en guardarYCerrarCedula:', error);
     return res.status(400).json({ ok: false, mensaje: error.message });
   }
 }

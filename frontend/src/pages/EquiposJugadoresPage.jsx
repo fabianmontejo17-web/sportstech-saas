@@ -66,17 +66,14 @@ export default function EquiposJugadoresPage({ idLiga = 1, idTorneo = 1 }) {
     setMsg({ type: '', text: '' });
 
     try {
-      const fd = new FormData();
-      fd.append('id_liga', idLiga);
-      fd.append('id_torneo', idTorneo);
-      fd.append('id_equipo', selectedEquipo.id_equipo);
-      fd.append('nombre_completo', jugadorForm.nombre_completo);
-      fd.append('curp', jugadorForm.curp);
-      fd.append('fecha_nacimiento', jugadorForm.fecha_nacimiento);
-      fd.append('num_camiseta', jugadorForm.num_camiseta);
-
-      const { data } = await axiosClient.post('/jugadores/inscribir', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const { data } = await axiosClient.post('/jugadores/inscribir', {
+        id_liga: idLiga,
+        id_torneo: idTorneo,
+        id_equipo: selectedEquipo.id_equipo,
+        nombre_completo: jugadorForm.nombre_completo,
+        curp: jugadorForm.curp,
+        fecha_nacimiento: jugadorForm.fecha_nacimiento,
+        num_camiseta: Number(jugadorForm.num_camiseta),
       });
 
       setMsg({ type: 'ok', text: data.mensaje });
