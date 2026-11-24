@@ -1,34 +1,25 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
+const useSSL =
+  process.env.DB_SSL === 'true' ||
+  (process.env.DB_HOST || '').includes('tidbcloud.com');
+
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: Number(process.env.DB_PORT || 3307),
+  host: process.env.DB_HOST || 'localhost',
+  port: Number(process.env.DB_PORT) || 3306,
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'sportstech_db',
+  database: process.env.DB_NAME || 'sportstech',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  charset: 'utf8mb4',
+  ...(useSSL && {
+    ssl: {
+      minVersion: 'TLSv1.2',
+      rejectUnauthorized: true,
+    },
+  }),
 });
 
-/**
- * Ejecuta una función dentro de una transacción ACID (BEGIN -> COMMIT / ROLLBACK)
- */
-async function withTransaction(callback) {
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-    const result = await callback(connection);
-    await connection.commit();
-    return result;
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
-
-module.exports = { pool, withTransaction };
+module.exports = { pool };
