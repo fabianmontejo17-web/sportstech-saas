@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 
 const { verifyToken, requireRoles } = require('../middlewares/auth.middleware');
-const upload = require('../middlewares/upload.middleware');
 
 const authCtrl = require('../controllers/auth.controller');
 const ligaCtrl = require('../controllers/liga.controller');
@@ -32,13 +31,12 @@ router.post('/ligas', verifyToken, ligaCtrl.createLiga);
 router.get('/ligas/:idLiga/torneos', ligaCtrl.getTorneosByLiga);
 router.post('/torneos', verifyToken, requireRoles('SUPERADMIN', 'ADMIN_LIGA'), ligaCtrl.createTorneo);
 
-// Equipos y Jugadores (con subida de foto e INE)
+// Equipos y Jugadores
 router.get('/equipos', verifyToken, equipoCtrl.getEquipos);
 router.post(
   '/equipos',
   verifyToken,
   requireRoles('SUPERADMIN', 'ADMIN_LIGA'),
-  upload.single('escudo'),
   equipoCtrl.createEquipo
 );
 router.get('/equipos/:idEquipo/jugadores', verifyToken, equipoCtrl.getJugadoresByEquipo);
@@ -46,17 +44,7 @@ router.post(
   '/jugadores/inscribir',
   verifyToken,
   requireRoles('SUPERADMIN', 'ADMIN_LIGA', 'DELEGADO'),
-  upload.fields([
-    { name: 'foto', maxCount: 1 },
-    { name: 'ine', maxCount: 1 },
-  ]),
   equipoCtrl.registrarJugadorEnPlantilla
-);
-router.patch(
-  '/jugadores/:idJugador/validar-ine',
-  verifyToken,
-  requireRoles('SUPERADMIN', 'ADMIN_LIGA'),
-  equipoCtrl.validarIneJugador
 );
 
 // Generador Round-Robin y Calendario sin empalmes

@@ -27,8 +27,6 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Servir fotografías e identificaciones cargadas
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Rutas versionadas v1
 app.use('/api/v1', apiRoutes);

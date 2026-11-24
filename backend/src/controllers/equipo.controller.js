@@ -21,16 +21,15 @@ async function createEquipo(req, res) {
   try {
     const id_liga = req.body.id_liga || req.user.id_liga || 1;
     const { nombre, delegado_nombre, telefono } = req.body;
-    const escudo_url = req.file ? `/uploads/${req.file.filename}` : null;
 
     if (!nombre || !delegado_nombre || !telefono) {
       return res.status(400).json({ ok: false, mensaje: 'Nombre del equipo, delegado y teléfono son obligatorios.' });
     }
 
     const [result] = await pool.query(
-      `INSERT INTO equipos (id_liga, nombre, delegado_nombre, telefono, escudo_url)
-       VALUES (?, ?, ?, ?, ?)`,
-      [id_liga, nombre.trim(), delegado_nombre.trim(), telefono.trim(), escudo_url]
+      `INSERT INTO equipos (id_liga, nombre, delegado_nombre, telefono)
+       VALUES (?, ?, ?, ?)`,
+      [id_liga, nombre.trim(), delegado_nombre.trim(), telefono.trim()]
     );
     return res.status(201).json({ ok: true, id_equipo: result.insertId, mensaje: 'Equipo registrado exitosamente.' });
   } catch (error) {
@@ -60,10 +59,6 @@ async function getJugadoresByEquipo(req, res) {
   }
 }
 
-/**
- * Registra al futbolista con validación fotográfica e INE/CURP y lo inscribe en la plantilla del torneo
- * evitando duplicidad de jugador en el mismo torneo (3FN).
- */
 async function registrarJugadorEnPlantilla(req, res) {
   try {
     const id_liga = req.body.id_liga || req.user.id_liga || 1;
@@ -73,12 +68,6 @@ async function registrarJugadorEnPlantilla(req, res) {
       return res.status(400).json({ ok: false, mensaje: 'Todos los campos del jugador y dorsal son obligatorios.' });
     }
 
-    const fotoFile = req.files?.foto?.[0];
-    const ineFile = req.files?.ine?.[0];
-    const foto_url = fotoFile ? `/uploads/${fotoFile.filename}` : null;
-    const ine_url = ineFile ? `/uploads/${ineFile.filename}` : null;
-    const ine_validada = ine_url ? 1 : 0;
-
     const data = await withTransaction(async (conn) => {
       const curpNorm = curp.trim().toUpperCase();
       const [existing] = await conn.query('SELECT id_jugador FROM jugadores WHERE curp = ? LIMIT 1', [curpNorm]);
@@ -86,21 +75,11 @@ async function registrarJugadorEnPlantilla(req, res) {
       let idJugador;
       if (existing.length > 0) {
         idJugador = existing[0].id_jugador;
-        if (foto_url || ine_url) {
-          await conn.query(
-            `UPDATE jugadores
-             SET foto_url = COALESCE(?, foto_url),
-                 ine_url = COALESCE(?, ine_url),
-                 ine_validada = CASE WHEN ? IS NOT NULL THEN 1 ELSE ine_validada END
-             WHERE id_jugador = ?`,
-            [foto_url, ine_url, ine_url, idJugador]
-          );
-        }
       } else {
         const [ins] = await conn.query(
-          `INSERT INTO jugadores (id_liga, curp, nombre_completo, fecha_nacimiento, foto_url, ine_url, ine_validada)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [id_liga, curpNorm, nombre_completo.trim(), fecha_nacimiento, foto_url, ine_url, ine_validada]
+          `INSERT INTO jugadores (id_liga, curp, nombre_completo, fecha_nacimiento)
+           VALUES (?, ?, ?, ?)`,
+          [id_liga, curpNorm, nombre_completo.trim(), fecha_nacimiento]
         );
         idJugador = ins.insertId;
       }
@@ -116,7 +95,7 @@ async function registrarJugadorEnPlantilla(req, res) {
 
     return res.status(201).json({
       ok: true,
-      mensaje: 'Jugador validado e inscrito correctamente en la plantilla.',
+      mensaje: 'Jugador inscrito correctamente en la plantilla.',
       data,
     });
   } catch (error) {
@@ -130,21 +109,9 @@ async function registrarJugadorEnPlantilla(req, res) {
   }
 }
 
-async function validarIneJugador(req, res) {
-  try {
-    const { idJugador } = req.params;
-    const { ine_validada } = req.body;
-    await pool.query('UPDATE jugadores SET ine_validada = ? WHERE id_jugador = ?', [ine_validada ? 1 : 0, idJugador]);
-    return res.json({ ok: true, mensaje: 'Estatus de validación documental actualizado.' });
-  } catch (error) {
-    return res.status(500).json({ ok: false, mensaje: error.message });
-  }
-}
-
 module.exports = {
   getEquipos,
   createEquipo,
   getJugadoresByEquipo,
   registrarJugadorEnPlantilla,
-  validarIneJugador,
 };
