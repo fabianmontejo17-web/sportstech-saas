@@ -4,8 +4,8 @@ import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage({ onOpenPublicPortal }) {
   const { login } = useAuth();
-  const [email, setEmail] = useState('admin@sportstech.mx');
-  const [password, setPassword] = useState('Admin123*');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -35,7 +35,7 @@ export default function LoginPage({ onOpenPublicPortal }) {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} autoComplete="off" className="p-6 space-y-4">
           {error && (
             <div className="bg-red-50 border-l-4 border-red-600 text-red-800 p-3 text-sm rounded">
               {error}
@@ -52,6 +52,8 @@ export default function LoginPage({ onOpenPublicPortal }) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder="usuario@ejemplo.com"
+                autoComplete="off"
                 required
                 className="w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-600 focus:outline-none"
               />
@@ -68,6 +70,8 @@ export default function LoginPage({ onOpenPublicPortal }) {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                autoComplete="new-password"
                 required
                 className="w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-600 focus:outline-none"
               />
@@ -91,7 +95,6 @@ export default function LoginPage({ onOpenPublicPortal }) {
               <Eye className="w-4 h-4" />
               Ver Portal Público de Posiciones y Goleo
             </button>
-            
           </div>
         </form>
       </div>
