@@ -47,8 +47,9 @@ async function getEstadisticasTorneo(req, res) {
         (SELECT COUNT(*) FROM plantillas_torneo WHERE id_torneo = ? AND estatus_habilitado = 1) AS jugadores_validados,
         (SELECT COALESCE(MAX(jornada), 1) FROM partidos WHERE id_torneo = ? AND estatus = 'FINALIZADO') AS jornada_actual,
         (SELECT COUNT(*) FROM partidos WHERE id_torneo = ?) AS total_partidos,
-        (SELECT COUNT(*) FROM partidos WHERE id_torneo = ? AND estatus = 'FINALIZADO') AS partidos_finalizados`,
-      [idTorneo, idTorneo, idTorneo, idTorneo, idTorneo]
+        (SELECT COUNT(*) FROM partidos WHERE id_torneo = ? AND estatus = 'FINALIZADO') AS partidos_finalizados,
+        (SELECT COUNT(*) FROM partidos WHERE id_torneo = ? AND estatus = 'FINALIZADO') AS partidos_cerrados`,
+      [idTorneo, idTorneo, idTorneo, idTorneo, idTorneo, idTorneo]
     );
 
     return res.json({
